@@ -4,7 +4,7 @@
 // @version      1.1
 // @author       Zenny
 // @description  Reveal and copy game keys easily
-// @match        https://www.humblebundle.com/home/keys
+// @match        https://www.humblebundle.com/home/keys*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=humblebundle.com
 // @grant        GM_setClipboard
 // ==/UserScript==
