@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Lestrade's - Zen Theme
 // @namespace    https://lestrades.com/
-// @version      1.46.10
+// @version      1.46.11
 // @description  Rebuilds Lestrade's client layout
 // @match        https://lestrades.com/*
 // @author       Zenny
@@ -3618,6 +3618,10 @@
       gap: 18px;
     }
 
+    html.${ROOT_CLASS} body.lt-offers-page #more-lists {
+      margin-top: 22px !important;
+    }
+
     html.${ROOT_CLASS} body.lt-offers-page #main {
       min-width: 0;
     }
@@ -4906,69 +4910,6 @@
     return true;
   }
 
-  function getPmConversationHref(replyHref) {
-    try {
-      const url = new URL(replyHref, window.location.href);
-      const values = new Map(
-        url.search
-          .slice(1)
-          .split(";")
-          .map((part) => part.split("="))
-          .filter(([key, value]) => key && value)
-          .map(([key, value]) => [key, decodeURIComponent(value)])
-      );
-      const messageId = values.get("pmsg");
-      if (!messageId) return "";
-      const folder = values.get("f") || "inbox";
-      const user = values.get("u") || "all";
-      return `${url.origin}${url.pathname}?f=${encodeURIComponent(folder)};pmsg=${encodeURIComponent(messageId)};u=${encodeURIComponent(user)}`;
-    } catch {
-      return "";
-    }
-  }
-
-  function startPmLivePolling(threadPane, replyHref) {
-    if (!threadPane || !replyHref || threadPane.dataset.ltPmLivePolling) return;
-    const conversationHref = getPmConversationHref(replyHref);
-    if (!conversationHref) return;
-    threadPane.dataset.ltPmLivePolling = "true";
-
-    let stopped = false;
-    let pollTimer;
-    const stop = () => {
-      stopped = true;
-      window.clearTimeout(pollTimer);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("pagehide", stop);
-      delete threadPane.dataset.ltPmLivePolling;
-    };
-    const poll = () => {
-      if (stopped) return;
-      if (document.visibilityState === "hidden") {
-        pollTimer = window.setTimeout(poll, 8000);
-        return;
-      }
-      fetch(conversationHref, { credentials: "same-origin", cache: "no-store" })
-        .then((response) => {
-          if (!response.ok) throw new Error(`Conversation refresh failed: ${response.status}`);
-          return response.text();
-        })
-        .then((html) => mergeInlinePmThread(threadPane, html))
-        .catch(() => {})
-        .finally(() => {
-          if (!stopped) pollTimer = window.setTimeout(poll, 8000);
-        });
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState !== "visible") return;
-      window.clearTimeout(pollTimer);
-      poll();
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("pagehide", stop, { once: true });
-    poll();
-  }
-
   function renderInlinePmResponse(panel, responseHtml, actionName) {
     const parsed = new DOMParser().parseFromString(responseHtml, "text/html");
     const result = panel.querySelector(".lt-pm-reply-result") || document.createElement("div");
@@ -5182,12 +5123,13 @@
 
   function bindInlinePmSubmit(threadPane, panel, nativeForm, subject, message, actions) {
     nativeForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
       const submitter = event.submitter;
       const nativeSubject = nativeForm.querySelector('input[name="subject"]');
       const nativeMessage = nativeForm.querySelector('textarea[name="message"]');
       if (nativeSubject) nativeSubject.value = subject.value;
       if (nativeMessage) nativeMessage.value = message.value;
+      if (submitter?.name === "post_button") return;
+      event.preventDefault();
       panel.dataset.ltPmBusy = "true";
       try {
         const response = await fetch(nativeForm.action, {
@@ -5597,7 +5539,6 @@
     const replyHref = buttonList?.querySelector("a.reply")?.href || threadPane.querySelector(".actions a.reply_button")?.href;
     attachInlinePmActions(threadPane);
     enhanceInlinePmReply(threadPane, replyHref);
-    startPmLivePolling(threadPane, replyHref);
   }
 
   function collectOfferContextRows(table) {
