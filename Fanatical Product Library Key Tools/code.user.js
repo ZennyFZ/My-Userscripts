@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Fanatical Product Library Key Tools
 // @namespace    local.fanatical.key-tools
-// @version      1.0.0
+// @version      1.1.0
 // @author       Zenny
-// @description  Reveal keys and copy product names/keys from the Fanatical product library.
+// @description  Reveal keys and copy product names/keys from Fanatical, auto-filtering coupons while preserving bonus games.
 // @match        https://www.fanatical.com/*/product-library*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=fanatical.com
 // @grant        GM_setClipboard
@@ -21,6 +21,24 @@
 
   function cleanText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  // Nhận diện các thẻ là coupon, voucher, PDF quà tặng, vòng quay
+  function isCouponOrPromo(row, name) {
+    const text = (row.textContent || "").toLowerCase();
+
+    const promoPatterns = [
+      /how do i use my coupon/i,
+      /only one coupon can be applied/i,
+      /\bfree spend\b/i,
+      /\bcoupon\b/i,
+      /\bscratch card\b/i,
+      /\bwin your bundle back\b/i,
+      /\[pdf\]/i,
+      /level up your set up/i,
+    ];
+
+    return promoPatterns.some((pattern) => pattern.test(text) || pattern.test(name));
   }
 
   function getRows() {
@@ -54,6 +72,8 @@
       .replace(/\s*Bundle:\s*.*$/i, "")
       .replace(/\s*Purchased:\s*.*$/i, "")
       .replace(/\s*REVEAL\s*KEY.*$/i, "")
+      // Nếu là game có nhãn BONUS: thì gọt bỏ tiền tố để lấy tên game gốc
+      .replace(/^BONUS:\s*/i, "")
       .trim();
 
     return name;
@@ -92,12 +112,14 @@
 
   function getItems() {
     return getRows()
-      .map((row) => ({
-        row,
-        name: getName(row),
-        key: getKey(row),
-      }))
-      .filter((item) => item.name || item.key);
+      .map((row) => {
+        const name = getName(row);
+        const key = getKey(row);
+        return { row, name, key };
+      })
+      .filter((item) => (item.name || item.key))
+      // Loại bỏ coupon, voucher, PDF
+      .filter((item) => !isCouponOrPromo(item.row, item.name));
   }
 
   async function writeClipboard(text) {
@@ -162,7 +184,12 @@
   }
 
   async function copyNames() {
-    const names = getItems().map((item) => item.name).filter(Boolean);
+    // Chỉ lấy tên của các mục có key hoặc có nút redeem/reveal để tránh sót rác
+    const names = getItems()
+      .filter((item) => item.key || item.row.querySelector("button, a[href*='redeem']"))
+      .map((item) => item.name)
+      .filter(Boolean);
+
     await copyLines(names, "name");
   }
 
@@ -173,7 +200,7 @@
 
   async function copyNameKeyPairs() {
     const pairs = getItems()
-      .filter((item) => item.name || item.key)
+      .filter((item) => item.name && item.key)
       .map((item) => `${item.name}:${item.key}`);
 
     await copyLines(pairs, "name:key pair");
