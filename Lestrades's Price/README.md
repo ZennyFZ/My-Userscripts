@@ -1,8 +1,71 @@
 # Lestrade's Prices Helper Script
 Enhances Lestrade's by fetching grey market value data from GG.Deals and other sources.
 
-## Requirements:
-You need to have TamperMonkey or GreaseMonkey installed on your browser before you can install this script.
+## Requirements
+
+This script is intentionally compatible with **Tampermonkey** and
+**Violentmonkey**. It does not use Tampermonkey's `cookiePartition` attribute.
+Instead, it temporarily stores the `cf_clearance` value in the userscript
+manager's storage and adds that value to later GG.Deals requests.
+
+The script may still contain hidden bugs. Other userscript managers may use
+different cookie and request APIs so read their documentation and update the
+code logic.
+
+### First-time setup
+
+1. Install the userscript manager and install this script.
+2. Enable HTTP-only cookie access using the manager-specific instructions
+   below.
+3. Open `https://gg.deals` in the same browser profile.
+4. Solve the Cloudflare check once.
+5. Open Lestrades and click a GG.Deals button.
+
+#### Tampermonkey
+
+1. Open **Settings → General → Config Mode → Advanced**.
+2. Scroll to **Security → Allow scripts to access cookies**.
+3. Set it to **All** and save.
+
+#### Violentmonkey
+
+1. Open **Settings → Backup**.
+2. Enable **Allow GM_cookie to access HTTP-only cookies (only for scripts with
+   this option enabled in their settings)**.
+3. Open **Installed Scripts → Lestrades-Prices → Settings**.
+4. Enable **Allow GM_cookie to access HTTP-only cookies** and save.
+
+## Android
+
+You can use **Firefox/Microsoft Edge + Tampermonkey/Violentmonkey** or **Anything that supports Tampermonkey/Violentmonkey**
+
+## iOS
+
+No solution at the moment
+
+[Safari Issue](https://github.com/Tampermonkey/tampermonkey/issues/2252)
+
+## Logic
+
+1. When you visit `gg.deals`, the script looks for the `cf_clearance` cookie.
+2. If the cookie is found, its value is temporarily stored in the userscript
+   manager's storage.
+3. When you click a GG.Deals button on a Lestrades game page, the script reads
+   the stored value and adds it to the request.
+
+The script itself does not have enough permission to read `HttpOnly` cookies.
+That permission must be enabled in the userscript manager's settings.
+
+## Compatibility and limitations
+
+Browser cookie behavior is not identical across browsers. In particular,
+Firefox and Chrome can handle cookies differently so compatibility with every
+browser cannot be guaranteed.
+
+The original tested combinations are:
+
+- Chrome: Tampermonkey and Violentmonkey
+- Firefox: Tampermonkey and Violentmonkey
 
 ## Key Features
 
@@ -33,10 +96,6 @@ You need to have TamperMonkey or GreaseMonkey installed on your browser before y
    - All settings (e.g., cache duration, auto-fetch count, etc.) can be tweaked in the script’s config.
    - Global rate limit ensures no more than 10 requests per minute.
    - Easily enable or disable specific features via built-in config constants.
-
-## Installation
-Click [here](https://github.com/Nao/Lestrades-Prices/raw/refs/heads/main/Lestrades-Prices.user.js) to install the userscript.
-
 
 ## Images:
 
