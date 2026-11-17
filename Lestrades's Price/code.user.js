@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name			Lestrade's Prices Experiment
 // @namespace		https://lestrades.com
-// @version			1.10
+// @version			1.11
 // @description 	Integrates GG.Deals prices on Lestrades.com with caching, rate limiting and one-click price lookups.
 // @match			https://lestrades.com/*
 // @match			https://gg.deals/*
@@ -577,7 +577,7 @@
     const response = await new Promise((resolve, reject) => {
       GM_xmlhttpRequest(
         prepareGGRequest({
-          method: "GET",
+          method: request.method || "GET",
           headers: {
             "X-Requested-With": "XMLHttpRequest",
             "Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -598,6 +598,7 @@
 
   async function getPricesFromChunk(url, drm, csrf) {
     const doc = await GM_fetch_html({
+      method: "POST",
       url: `https://gg.deals${url}`,
       data: `gg_csrf=${csrf}`,
     });
